@@ -1,3 +1,4 @@
+using CoreStartApp.Middlewares;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -15,18 +16,12 @@ namespace CoreStartApp
 {
 	public class Startup
 	{
-		//public IConfiguration Configuration { get; }
+		public IConfiguration Configuration { get; }
+		private readonly IWebHostEnvironment _env;
 
-		//public Startup(IConfiguration configuration)
-		//{
-		//	Configuration = configuration;
-		//}
-
-
-		private IWebHostEnvironment _env;
-
-		public Startup(IWebHostEnvironment env)
+		public Startup(IConfiguration configuration, IWebHostEnvironment env)
 		{
+			Configuration = configuration;
 			_env = env;
 		}
 
@@ -37,8 +32,10 @@ namespace CoreStartApp
 		}
 
 		// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-		public void Configure(IApplicationBuilder app/*, IWebHostEnvironment env*/)
+		public void Configure(IApplicationBuilder app)
 		{
+			Console.WriteLine($"Launching project from: {_env.ContentRootPath}");
+
 			if (_env.IsDevelopment())
 			{
 				app.UseDeveloperExceptionPage();
@@ -59,11 +56,14 @@ namespace CoreStartApp
 
 
 			app.UseHttpsRedirection();
+
+			// Поддержка статических файлов
 			app.UseStaticFiles();
 
 			app.UseRouting();
 
-
+			// Доработайте ваш LoggingMiddleware так, чтобы логирование в файл тоже происходило в нём.
+			/*
 			// Разместим данный метод сразу после app.UseRouting() или app.UseStaticFiles(), чтобы в конвейере запросов наш обработчик срабатывал в самом начале:
 			// Используем метод Use, чтобы запрос передавался дальше по конвейеру
 			app.Use(async (context, next) =>
@@ -79,7 +79,15 @@ namespace CoreStartApp
 
 				await next.Invoke();
 			});
+			*/
 
+			// Подключаем логирование с использованием ПО промежуточного слоя
+			app.UseMiddleware<LoggingMiddleware>();
+			
+
+
+
+			/*
 			//Добавляем компонент для логирования запросов с использованием метода Use.
 			app.Use(async (context, next) =>
 			{
@@ -87,6 +95,7 @@ namespace CoreStartApp
 				Console.WriteLine($"[{DateTime.Now}]: New request to http://{context.Request.Host.Value + context.Request.Path}");
 				await next.Invoke();
 			});
+			*/
 
 			app.UseAuthorization();
 
@@ -128,11 +137,15 @@ namespace CoreStartApp
 			app.Map("/about", About);
 			app.Map("/config", Config);
 
+			// обрабатываем ошибки HTTP
+			app.UseStatusCodePages();
+			/*
 			// Обработчик для ошибки "страница не найдена"
 			app.Run(async (context) =>
 			{
 				await context.Response.WriteAsync($"Page not found");
 			});
+			*/
 		}
 
 		// Обработчики отдельных страниц:
